@@ -39,6 +39,42 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
+1. **Arrives at `POST /submit`:** Assigns the text a submission ID and timestamp.
+2. **Validation:** Rejects empty or too short submission, no score produced.
+3. **`detector.py`:** A local model measures how predictable the text is and produces an AI-likeness score.
+4. **`stylometry.py`:** Measures text style (line-length variation, repeated openings, stock-word rate) and adds a second score.
+5. **Combining, `scoring.py`:** Merges the two scores into one 0–1 score using the weights in `config.py`.
+6. **Label, `scoring.py`:** Compares the score to the human and AI thresholds in `config.py` and returns a guess ("human", "unsure" or "ai") + the plain-English sentence the reader see.
+7. **Log and respond:** Saves both signals + score + guess + label to the submission ID and returns as `/submit` response.
+
+**`POST /appeal`:** If a writer disagrees with the result, they send a POST request with the `content_id` and their reasoning. The service finds the saved record, marks it as `under_review`, and returns its status. 
+
+**`GET /content/<id>`:** At any point, `GET /content/<id>` returns the current status of one item.
+
+### Endpoints
+
+**POST /submit**
+- In: `text` (string, required), `creator_id` (string, required)
+- Out: `content_id`, `guess` ("human" | "unsure" | "ai"), `confidence` (0–1), `label` (the sentence a reader sees), `model_score`, `style_score`
+- Errors: 400 if `text` is empty or too short; 503 if the detector can't load
+
+**POST /appeal**
+- In: `content_id`, `reasoning`
+- Out: `content_id`, `status` ("appealed")
+- Errors: 404 if `content_id` doesn't exist
+
+**GET /content/<id>** (stretch)
+- Out: `content_id`, `status` ("scored" or "appealed"), `guess`, `label`
+- Errors: 404 if `content_id` doesn't exist
+
+**GET /log?limit=N**
+- Out: the last N saved entries
+
+---
+
+## Stretch Features
+1. **Third signal: stock-word rate** Counts how often words from a list of stock poetic imagery ("whispers", "tapestry", "echoes", etc.) appear per 100 words. (add to combining rule and decide how to weigh 3 signals)
+2. **`GET /content/<id>`.** Returns the current status of one submission (scored or appealed), along with its guess and label.
 
 
 ---
