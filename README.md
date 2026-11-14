@@ -158,12 +158,19 @@
 
 ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+-H "Content-Type: application/json" \
+-d '{"text": "The bottom of my shoes/ are clean/ From walking in the rain", "creator_id": "Jack Kerouac"}'
 ```
 
 ```json
-
+{
+  "confidence": 0.5,
+  "content_id": "c34e2388-996d-4c5b-a327-faf0b4d84ee7",
+  "guess": "unsure",
+  "label": "placeholder",
+  "model_score": 0.039,
+  "style_score": 0.0
+}
 ```
 
 **An appeal**
@@ -185,7 +192,32 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
 ```json
-
+{
+  "count": 3,
+  "entries": [
+    {
+      "creator_id": "robbie",
+      "event": "rejected",
+      "reason": "missing_or_empty_text",
+      "status": "rejected",
+      "timestamp": "2026-11-14T07:45:05+00:00"
+    },
+    {
+      "creator_id": "robbie",
+      "event": "rejected",
+      "reason": "missing_or_empty_text",
+      "status": "rejected",
+      "timestamp": "2026-11-14T07:45:15+00:00"
+    },
+    {
+      "creator_id": "robbie",
+      "event": "rejected",
+      "reason": "text_too_short",
+      "status": "rejected",
+      "timestamp": "2026-11-14T07:45:26+00:00"
+    }
+  ]
+}
 ```
 
 ---
