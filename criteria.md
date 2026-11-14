@@ -42,61 +42,61 @@ Two things worth knowing before you pick numbers:
   a **miss**.
 
 ---
-## 1.
+## 1. Of 10 pieces I know to be human (written by myself), *0/10* is labeled high-confidence AI in all 3 runs.
 
 <!-- Your criterion. It must name a number. -->
 
 
 
-**Why this target:**
-
+**Why this target:** A wrong accusation costs more than a missed detection. The model should allow "unsure" more often than "AI" because it is not an accusation.
 
 
 ---
 
-## 2.
+## 2. The average score of 5 clearly-AI poems is *at least 0.30* higher than the average of 5 clearly-human poems in all 3 runs.
+
 
 <!-- Your criterion. -->
 
 
 
-**Why this target:**
+**Why this target:** The system should be able to separate the obvious cases. 0.30 is large enough to span the gap between my two thresholds, so clear AI and clear human land in different labels.
 
 
 
 ---
 
-## 3.
+## 3. All three labels are reachable: Each of the labels (human, unsure, AI) appears *at least twice*, in all 3 runs, and I can paste the input that produced each.
 
 <!-- Your criterion. -->
 
 
 
-**Why this target:**
+**Why this target:** A label that no input can produce means my score thresholds have a gap. Two appearances each shows the labels are reachable, and across all 3 runs means it's consistent.
 
 
 
 ---
 
-## 4.
+## 4. For 10 appeals on real submissions, *10 of 10* change the item's status to "appealed" and add a log entry containing the `content_id` and the writer's reasoning. An appeal on a `content_id` that doesn't exist returns a 404 and changes nothing.
 
 <!-- Your criterion. -->
 
 
 
-**Why this target:**
+**Why this target:** The system should never ignore a wrongly accused writer, therefore no failure is tolerated.
 
 
 
 ---
 
-## 5.
+## 5. For *6 out of 6* bad inputs (missing `text` / empty string / whitespace only / a single word / a 50,000-character text / a non-string value), the service returns a 4xx JSON error with a plain message, never a 500 and never a score.
 
 <!-- Your criterion. -->
 
 
 
-**Why this target:**
+**Why this target:** A crash or an invented score for an empty submission is a bug a writer can see, and the response to bad input is entirely in my control, so I expect to hit 6 of 6.
 
 
 

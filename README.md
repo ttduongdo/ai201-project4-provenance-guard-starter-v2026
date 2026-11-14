@@ -70,9 +70,8 @@
 **GET /log?limit=N**
 - Out: the last N saved entries
 
----
+### Stretch Features
 
-## Stretch Features
 1. **Third signal: stock-word rate** Counts how often words from a list of stock poetic imagery ("whispers", "tapestry", "echoes", etc.) appear per 100 words. (add to combining rule and decide how to weigh 3 signals)
 2. **`GET /content/<id>`.** Returns the current status of one submission (scored or appealed), along with its guess and label.
 
