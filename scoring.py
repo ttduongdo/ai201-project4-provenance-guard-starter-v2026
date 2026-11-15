@@ -33,31 +33,25 @@ def combine_signals(model_score: float, style_score: float) -> float:
     Returns:
         A float from 0.0 (confidently human) to 1.0 (confidently AI).
 
-    ⚠️ **Write the rule down before you code it, and put the numbers in your
-    README.** A weighted average is the obvious choice and it is not the only
-    one. Things worth thinking about:
+    Combine two 0–1 signals into one 0–1 score; higher means more likely AI.
 
-      - **What happens when they disagree?** One signal at 0.9 and the other at
-        0.1 averages to 0.5 — "unsure". Is that what you want? It might be
-        exactly right: two methods disagreeing IS uncertainty. Or you might
-        decide one signal is more trustworthy when they split.
-
-      - **Which way do you want to be wrong?** Weighting toward the signal that
-        reads more human means fewer false accusations and more AI text
-        getting through. There's no weighting that avoids the trade.
-
-      - Milestone 4 asks you to find a case where your two signals split and
-        write it down. That case is what this rule exists to handle.
-
-    The weights in config.py are placeholders. Change them, or ignore them and
-    write a different rule.
+    Rule: The score is a weighted average of the two signals. 
+        - When the signals disagree and the average leans AI, it is pulled back toward 0.5 by the size
+          of the disagreement, so a high-confidence AI result needs both signals to
+          agree. 
+        - A human-leaning average is left alone.
     """
-    # TODO: replace this
-    return (
-        config.WEIGHT_MODEL_SIGNAL * model_score
-        + config.WEIGHT_STYLE_SIGNAL * style_score
-    )
+    avg = (config.WEIGHT_MODEL_SIGNAL * model_score
+           + config.WEIGHT_STYLE_SIGNAL * style_score)
+    gap = abs(model_score - style_score)
+    # Only an AI-leaning score gets pulled toward the middle when the signals disagree.
+    if avg > 0.5:
+        avg = 0.5 + (avg - 0.5) * (1 - gap)
+    return round(avg, 4)
 
+def score_confidence(score: float) -> float:
+    """0 = right in the middle, 1 = at either extreme."""
+    return round(abs(score - 0.5) * 2, 2)
 
 def score_to_label(score: float) -> tuple[str, str]:
     """

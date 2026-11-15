@@ -39,6 +39,13 @@ def sentences(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?])\s+", text.strip())
     return [p for p in parts if p.strip()]
 
+def units(text: str) -> list[str]:
+    """Lines for poems (3+ lines), sentences for prose.
+    A '/' with a space beside it counts as a line break ('shoes/ are' or 'shoes / are'), but
+    'and/or' and 'he/she' do not."""
+    spaced = re.sub(r"\s*/\s+|\s+/\s*", "\n", text) # "/ " or "\n" line separator
+    lines = [l for l in spaced.splitlines() if l.strip()]
+    return lines if len(lines) >= 3 else sentences(text)
 
 def words(text: str) -> list[str]:
     """Split into lowercase words, punctuation stripped. Given to you."""
@@ -64,11 +71,13 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    lengths = [n for n in (len(words(u)) for u in units(text)) if n > 0]
+    if len(lengths) < 2:
+        return None
+    return statistics.stdev(lengths) / statistics.mean(lengths)
 
 
-def type_token_ratio(text: str) -> float:
+def type_token_ratio(text: str, window: int = 25) -> float:
     """
     Unique words over total words. ← TODO
 
@@ -80,8 +89,13 @@ def type_token_ratio(text: str) -> float:
     directly comparable on it, and if your test inputs vary a lot in length,
     that alone can look like a signal.
     """
-    # TODO: replace this
-    return 0.0
+    w = words(text)
+    if not w:
+        return None
+    if len(w) <= window:
+        return len(set(w)) / len(w)
+    ratios = [len(set(w[i:i + window])) / window for i in range(len(w) - window + 1)]
+    return statistics.mean(ratios)
 
 
 def punctuation_density(text: str) -> float:
@@ -94,11 +108,17 @@ def punctuation_density(text: str) -> float:
         more interesting than full stops, because they vary more between
         writers.
     """
-    # TODO: replace this
-    return 0.0
+    marks = [",", ";", ":", "-", "—", "!", "?", "…", "(", '"']
+    present = sum(1 for m in marks if m in text) + (1 if "..." in text else 0)
+    return min(present, 6) / 6
+
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
+
+def clip(x):
+    return max(0.0, min(1.0, x))
+
 
 def style_signal(text: str) -> float:
     """
@@ -122,9 +142,14 @@ def style_signal(text: str) -> float:
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
-
+    cv = sentence_length_spread(text)
+    ttr = type_token_ratio(text)
+    parts = [
+        0.5 if cv is None else 1 - clip(cv / 0.6),           # even lengths -> AI
+        0.5 if ttr is None else 1 - clip((ttr - 0.6) / 0.35),  # repetitive words -> AI
+        1 - clip(punctuation_density(text)),                  # flat punctuation -> AI
+    ]
+    return round(sum(parts) / len(parts), 4)
 
 if __name__ == "__main__":
     import sys
@@ -134,9 +159,9 @@ if __name__ == "__main__":
         "good results. Users generally find it easy to use and understand."
     )
 
-    print(f"{len(sentences(text))} sentences, {len(words(text))} words\n")
+    print(f"{len(units(text))} units, {len(words(text))} words\n")
     print(f"sentence_length_spread   {sentence_length_spread(text)}")
     print(f"type_token_ratio         {type_token_ratio(text)}")
     print(f"punctuation_density      {punctuation_density(text)}")
     print(f"style_signal             {style_signal(text)}   (higher = more likely AI)")
-    print("\nAll zeros? These are stubs — Milestone 4 is where you build them.")
+

@@ -153,6 +153,7 @@ def health():
 @app.post("/submit")
 # @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
+    import stylometry, scoring
     """
     Take a piece of text, decide about it, log the decision, answer.
     ← TODO — Milestones 3, 4 and 5
@@ -227,13 +228,17 @@ def submit():
         return jsonify({"error": "detector_unavailable", 
                         "message": "Model unavailable."}), 503
     
-    guess, confidence, label = "unsure", 0.5, "placeholder"
+    style_score = stylometry.style_signal(text)
+    combined = scoring.combine_signals(model_score, style_score)
+    guess, confidence, label = "unsure", scoring.score_confidence(combined), "placeholder"
 
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
         guess=guess,
         model_score=model_score,
+        style_score=style_score,
+        combined_score=combined,
         label=label,
         status="decided",
     )
@@ -244,7 +249,8 @@ def submit():
         "confidence": confidence,
         "label": label,
         "model_score": model_score,
-        "style_score": 0.0
+        "style_score": style_score,
+        "combined_score": combined
     }), 200
 
 

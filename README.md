@@ -40,12 +40,12 @@
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
 1. **Arrives at `POST /submit`:** Assigns the text a submission ID and timestamp.
-2. **Validation:** Rejects empty or too short submission, no score produced.
+2. **Validation:** Rejects empty/too short submission and missing `creator_id`, no score produced (status 400).
 3. **`detector.py`:** A local model measures how predictable the text is and produces an AI-likeness score.
 4. **`stylometry.py`:** Measures text style (line-length variation, repeated openings, stock-word rate) and adds a second score.
 5. **Combining, `scoring.py`:** Merges the two scores into one 0–1 score using the weights in `config.py`.
-6. **Label, `scoring.py`:** Compares the score to the human and AI thresholds in `config.py` and returns a guess ("human", "unsure" or "ai") + the plain-English sentence the reader see.
-7. **Log and respond:** Saves both signals + score + guess + label to the submission ID and returns as `/submit` response.
+6. **Label, `scoring.py`:** Compares the score to the human and AI thresholds in `config.py` and returns a guess ("human", "unsure" or "ai") + the plain-English sentence the reader sees.
+7. **Log and respond:** Saves both signals + score + guess + label to the `content_id` and returns as `/submit` response.
 
 **`POST /appeal`:** If a writer disagrees with the result, they send a POST request with the `content_id` and their reasoning. The service finds the saved record, marks it as `under_review`, and returns its status. 
 
@@ -60,11 +60,11 @@
 
 **POST /appeal**
 - In: `content_id`, `reasoning`
-- Out: `content_id`, `status` ("appealed")
+- Out: `content_id`, `status` ("under_review")
 - Errors: 404 if `content_id` doesn't exist
 
 **GET /content/<id>** (stretch)
-- Out: `content_id`, `status` ("scored" or "appealed"), `guess`, `label`
+- Out: `content_id`, `status` ("decided" or "under_review"), `guess`, `label`
 - Errors: 404 if `content_id` doesn't exist
 
 **GET /log?limit=N**
@@ -88,36 +88,38 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** How predictable the text is to a local language model (0-1 score)
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** A language model writes by picking likely next words, so its own output can be easy for another model to predict. Human writing wanders more with odd word choices and specific details a model doesn't expect.
 
-**What it can't see:**
+**What it can't see:** Plainly written human work (a second-language writer, a younger writer, someone writing simply on purpose) may score as AI-like, while ornate AI text full of rare words can score as human.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** The shape of the text using 3 measures weighted equally:
+- spread of line or sentence length (standard deviation divided by mean; poems are measured by line, and a `/` beside a space counts as a line break)
+- vocabulary variety (the share of unique words, averaged over 25-word windows so length doesn't dominate)
+- punctuation variety (how many of 10 kinds of punctuation appear, capped at 6)
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** Generated text tends toward even, mid-length lines and a narrower, safer vocabulary with flat punctuation, while human writing is lumpier: a three-word line next to a long one, and more varied marks.
 
-**What it can't see:**
+**What it can't see:** Meaning, because it only measures shape. It also flags real writers whose style is regular on purpose, such as formal verse and plain minimalist poems.
 
 ### The combining rule
 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule:** An equally weighted average of the two scores. If 2 signals disagree and the average is above 0.5 (more likely AI), the average is pulled back toward 0.5 by the score difference. A human-leaning average is preserved. Confidence is how far the final score is from 0.5.
 
-**The numbers:**
+**The numbers:** Weights 0.5 (model) and 0.5 (style), set in `config.py`. When the average is above 0.5: Score = 0.5 + (average − 0.5) × (1 − |model − style|);Confidence = |score − 0.5| × 2
 
 **Where it lives:** `scoring.py::combine_signals`
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
 
-**A case where my two signals split, and what my rule does with it:**
-
+**A case where my two signals split, and what my rule does with it:** For a short human poem ("The bottom of my shoes / are clean / From walking in the rain"), the model signal scored 0.039 (very human) while the style signal scored 0.458 (near the middle, since three even short lines look regular). The two disagree by 0.42. The average is 0.248, below 0.5, so my rule leaves it alone and the combined score stays human-leaning at about 0.25. Had it gone the other way, with the model signal high and the style signal low, the rule would have pulled the score back toward 0.5 instead of accusing.
 
 
 ---
