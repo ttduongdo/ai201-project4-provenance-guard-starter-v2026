@@ -81,10 +81,12 @@ def score_to_label(score: float) -> tuple[str, str]:
     """
     # TODO: replace this — thresholds are in config.py
     if score >= config.AI_THRESHOLD:
-        return "ai", "PLACEHOLDER — write the high-confidence AI label."
+        return "ai", ("This looks a lot like AI-generated writing, but our check can be "
+                      "wrong. If you wrote it yourself, you can ask a person to review it.")
     if score <= config.HUMAN_THRESHOLD:
-        return "human", "PLACEHOLDER — write the high-confidence human label."
-    return "unsure", "PLACEHOLDER — write the unsure label."
+        return "human", "We think this was probably written by a person."
+    return "unsure", ("We can't tell whether this was written by a person or with AI help. "
+                      "If you wrote it yourself, you can ask for a review.")
 
 
 def label_ranges() -> list[tuple[str, str]]:

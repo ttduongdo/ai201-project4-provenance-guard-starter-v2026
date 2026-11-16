@@ -230,7 +230,8 @@ def submit():
     
     style_score = stylometry.style_signal(text)
     combined = scoring.combine_signals(model_score, style_score)
-    guess, confidence, label = "unsure", scoring.score_confidence(combined), "placeholder"
+    guess, label = scoring.score_to_label(combined)
+    confidence = scoring.score_confidence(combined)
 
     audit.log_decision(
         content_id=content_id,
@@ -241,6 +242,7 @@ def submit():
         combined_score=combined,
         label=label,
         status="decided",
+        confidence=confidence,
     )
 
     return jsonify({
@@ -276,12 +278,25 @@ def appeal():
     """
     payload = request.get_json(silent=True) or {}
 
-    # TODO: delete this and build the route.
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    if not isinstance(content_id, str) or not content_id.strip() \
+            or not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({"error": "bad_input",
+                        "message": "Empty input: 'content_id' and 'reasoning' are both required."}), 400
+
+    entries = audit.entries_for(content_id)
+    if not entries:
+        return jsonify({"error": "not_found",
+                        "message": f"No submission with content {content_id}."}), 404
+
+    audit.log_appeal(content_id, entries[0].get("creator_id"), reasoning)
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Thanks. Your appeal has been recorded and a person will review it.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

@@ -133,11 +133,11 @@
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 – 0.35 | We think this was probably written by a person. |
+| unsure | 0.35 – 0.60 | We can't tell whether this was written by a person or with AI help. If you wrote it yourself, you can ask for a review. |
+| high-confidence AI | 0.60 – 1.00 | This looks a lot like AI-generated writing, but our check can be wrong. If you wrote it yourself, you can ask a person to review it. |
 
-**Why I worded the "unsure" one this way:**
+**Why I worded the "unsure" one this way:** The person reading it may have written every word themselves, so it says plainly that we don't know, says outright that it isn't a judgment about them, and gives them a next step instead of leaving them stuck. It never uses the words "AI-generated" or "fake".
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
@@ -150,7 +150,7 @@
 
 <!-- One submission and one appeal, pasted as text: the request, the response,
      and the log entries. -->
-
+### Milestone 3 run
 **A submission**
 
 <!-- The response needs content_id, guess, confidence, label, AND both
@@ -173,18 +173,6 @@ $ curl -X POST http://127.0.0.1:5000/submit \
   "model_score": 0.039,
   "style_score": 0.0
 }
-```
-
-**An appeal**
-
-```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
-  -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
-```
-
-```json
-
 ```
 
 **What the log shows afterwards**
@@ -217,6 +205,94 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
       "reason": "text_too_short",
       "status": "rejected",
       "timestamp": "2026-11-14T07:45:26+00:00"
+    }
+  ]
+}
+```
+
+### Milestone 5 run
+**A submission**
+
+<!-- The response needs content_id, guess, confidence, label, AND both
+     signal scores - model_score and style_score. Unit 8's tools read those
+     two off the response, so leaving them out costs you next unit's
+     diagnostics. -->
+
+```bash
+$ curl -X POST http://127.0.0.1:5000/submit \
+-H "Content-Type: application/json" \
+-d '{"text": "O mistress mine, where are you roaming?\nO stay and hear! your true-love\u0027s coming\nThat can sing both high and low;\nTrip no further, pretty sweeting,\nJourney\u0027s end in lovers\u0027 meeting--\nEvery wise man\u0027s son doth know.\n\nWhat is love? \u0027tis not hereafter;\nPresent mirth hath present laughter;\nWhat\u0027s to come is still unsure:\nIn delay there lies no plenty,--\nThen come kiss me, Sweet and twenty,\nYouth\u0027s a stuff will not endure.", "creator_id": "shakespeare"}'
+```
+
+```json
+{
+  "combined_score": 0.1991,
+  "confidence": 0.6,
+  "content_id": "84aa9c86-a287-4a3c-92a6-cd4c9abf2f9a",
+  "guess": "human",
+  "label": "We think this was probably written by a person.",
+  "model_score": 0.1493,
+  "style_score": 0.2489
+}
+```
+
+**An appeal**
+
+```bash
+$ curl -X POST http://127.0.0.1:5000/appeal \
+-H "Content-Type: application/json" \ 
+-d '{"content_id": "34db8773-3ea5-4d26-b52c-47c06c28f325", "reasoning": "I wrote this myself."}'
+```
+
+```json
+{
+  "content_id": "34db8773-3ea5-4d26-b52c-47c06c28f325",
+  "message": "Thanks. Your appeal has been recorded and a person will review it.",
+  "status": "under_review"
+}
+```
+
+**What the log shows afterwards**
+
+```bash
+$ curl "http://127.0.0.1:5000/log?limit=3"
+```
+
+```json
+{
+  "count": 3,
+  "entries": [
+    {
+      "combined_score": 0.4642,
+      "confidence": 0.07,
+      "content_id": "34db8773-3ea5-4d26-b52c-47c06c28f325",
+      "creator_id": "clean_ai",
+      "guess": "unsure",
+      "label": "We can't tell whether this was written by a person or with AI help. If you wrote it yourself, you can ask for a review.",
+      "model_score": 0.3828,
+      "status": "decided",
+      "style_score": 0.5457,
+      "timestamp": "2026-11-16T00:07:00+00:00"
+    },
+    {
+      "combined_score": 0.2542,
+      "confidence": 0.49,
+      "content_id": "5cc70343-77c7-4e18-972c-d4bd09f57df7",
+      "creator_id": "edited_ai",
+      "guess": "human",
+      "label": "We think this was probably written by a person.",
+      "model_score": 0.1727,
+      "status": "decided",
+      "style_score": 0.3358,
+      "timestamp": "2026-11-16T00:07:20+00:00"
+    },
+    {
+      "content_id": "34db8773-3ea5-4d26-b52c-47c06c28f325",
+      "creator_id": "clean_ai",
+      "event": "appeal",
+      "reasoning": "I wrote this myself.",
+      "status": "under_review",
+      "timestamp": "2026-11-16T00:17:18+00:00"
     }
   ]
 }
